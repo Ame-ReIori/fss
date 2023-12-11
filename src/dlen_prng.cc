@@ -2,9 +2,8 @@
 
 void prg(osuCrypto::block s, osuCrypto::block *rand) {
   osuCrypto::AES aes;
-  osuCrypto::block tmp[2];
   aes.setKey(s << 1);
 
-  aes.ecbEncCounterMode(osuCrypto::ZeroBlock, tmp);
-  memcpy(rand, tmp, 32);
+  aes.ecbEncBlock(osuCrypto::ZeroBlock, rand[0]);
+  aes.ecbEncBlock(osuCrypto::OneBlock, rand[1]);
 }

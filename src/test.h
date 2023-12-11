@@ -6,5 +6,6 @@
 #include <iostream>
 
 #include "dpf.h"
+#include "ggm_tree.h"
 
 #endif

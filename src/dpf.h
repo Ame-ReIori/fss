@@ -26,6 +26,7 @@ struct DPFKey {
 
 // TODO: support Group Element template
 // !only support two parties
+// !only support 128-bit security parameter now
 // implement [BGI16]
 class DPF: public FSS<DPFKey, uint64_t> {
 public:
@@ -42,9 +43,10 @@ public:
 
   uint64_t Eval(uint8_t b, DPFKey key, uint64_t input);
 
+  void FreeKey(DPFKey key);
 };
 
-void test_dpf();
+void TestDPF();
 
 #endif
 

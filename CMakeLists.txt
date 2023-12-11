@@ -7,7 +7,6 @@ set(E "${Esc}[m")
 set(R "${Esc}[31m")
 set(G "${Esc}[32m")
 
-
 include(cmake/fssPreamble.cmake)
 
 find_package(cryptoTools QUIET)
@@ -21,6 +20,8 @@ set(FETCH_AUTO ON CACHE BOOL "Enable Relic for CryptoTools" FORCE)
 # set(ENABLE_COPROTO ON CACHE BOOL "Enable Relic for CryptoTools" FORCE)
 # set(FETCH_COPROTO ON CACHE BOOL "Enable Relic for CryptoTools" FORCE)
 # set(FETCH_LIBDIVIDE ON CACHE BOOL "Enable Relic for CryptoTools" FORCE)
+
+set(CMAKE_CXX_FLAGS "-maes -msse2 -msse3 -msse4.1 -mpclmul -mavx2 -march=native ${CMAKE_CXX_FLAGS}")
 
 
 if (cryptoTools_FOUND)

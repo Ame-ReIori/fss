@@ -1,4 +1,5 @@
 #include "dpf.h"
+#include "ggm_tree.h"
 
 uint64_t DPF::Convert(osuCrypto::block s) {
   return *(uint64_t *)&s;
@@ -19,14 +20,13 @@ void DPF::InitKey(DPFKey *key) {
 void DPF::Gen(uint64_t alpha, uint64_t beta, DPFKey *key) {
   osuCrypto::block s0_, s1_;
   osuCrypto::block double_len_s[2][2];
-  osuCrypto::block scw;
+  osuCrypto::block scw, xcw;
 
   uint8_t t0_, t1_;
   uint8_t keep, lose;
   uint8_t tcw[2], t0[2], t1[2];
 
   uint8_t cur_bit;
-  uint64_t mask = 1 << (this->bit_length - 1); // used to get current processing bit
 
   uint64_t fcw; // the final cw
 
@@ -35,23 +35,18 @@ void DPF::Gen(uint64_t alpha, uint64_t beta, DPFKey *key) {
   t0_ = 0;
   t1_ = 1;
 
-  key[0].s = s0_;
-  key[1].s = s1_;
+  // TODO: fix some bad bug on shift operation due to _mm_srli_epi64
+  key[0].s = (s0_ << 1) >> 1;
+  key[1].s = (s1_ << 1) >> 1;
 
   for (int i = 0; i < this->bit_length; i++) {
     prg(s0_, double_len_s[0]);
     prg(s1_, double_len_s[1]);
 
-    // TODO: use better bit extraction algorithm
-    cur_bit = (alpha >> (this->bit_length - i - 1)) & 1;// (alpha & (mask >> i)) >> (this->bit_length - i - 1);
+    cur_bit = (alpha >> (this->bit_length - i - 1)) & 1;
 
-    if (cur_bit) {
-      keep = 1;
-      lose = 0;
-    } else {
-      keep = 0;
-      lose = 1;
-    }
+    keep = cur_bit;
+    lose = 1 - cur_bit;
 
     scw = (double_len_s[0][lose] ^ double_len_s[1][lose]) >> 1; // reduce t
     
@@ -105,8 +100,6 @@ uint64_t DPF::Eval(uint8_t b, DPFKey key, uint64_t input) {
   uint8_t t[2];
 
   uint8_t cur_bit;
-  uint64_t mask = 1 << (this->bit_length - 1); // used to get current processing bit
-
   uint64_t output;
 
   s_ = key.s;
@@ -125,7 +118,7 @@ uint64_t DPF::Eval(uint8_t b, DPFKey key, uint64_t input) {
       t[1] = (*((uint8_t *)&double_len_s[1]) & 1);
     }
 
-    cur_bit = (input >> (this->bit_length - i - 1)) & 1; // (input & (mask >> i)) >> (this->bit_length - i - 1);
+    cur_bit = (input >> (this->bit_length - i - 1)) & 1;
     s_ = s[cur_bit];
     t_ = t[cur_bit];
   }
@@ -141,17 +134,37 @@ uint64_t DPF::Eval(uint8_t b, DPFKey key, uint64_t input) {
   return output;
 }
 
-void test_dpf() {
-  uint64_t alpha = 3;
+void DPF::FreeKey(DPFKey key) {
+  free(key.scw);
+  free(key.tcw_l);
+  free(key.tcw_r);
+}
+
+void TestDPF() {
+  uint64_t alpha = 6;
   uint64_t beta = 2;
 
   DPFKey key[2];
-  DPF dpf(16);
+  DPF dpf(3);
 
   printf("lambda is %d, bit length is %d\n", dpf.lambda, dpf.bit_length);
 
   dpf.InitKey(key);
   dpf.Gen(alpha, beta, key);
+
+  uint64_t o0, o1;
+
+  o0 = dpf.Eval(0, key[0], 6);
+  o1 = dpf.Eval(1, key[1], 6);
+  
+  GGMTree tree0(dpf.bit_length);
+  GGMTree tree1(dpf.bit_length);
+  tree0.FromDPFKey(key[0], 0);
+  tree1.FromDPFKey(key[1], 1);
+
+  ReconstrcutTwoGGMTree(tree0, tree1);
+
+  assert((o0 + o1) == beta);
 
   int times = 1000000;
   osuCrypto::Timer timer;
@@ -159,7 +172,7 @@ void test_dpf() {
   auto b = timer.setTimePoint("10^6 dpf eval test");
 
   for (int i = 0; i < times; i++) {
-    uint64_t o0 = dpf.Eval(0, key[0], 12);
+    o0 = dpf.Eval(0, key[0], 3);
     // uint64_t o1 = dpf.Eval(1, key[1], 12);
   }
 
