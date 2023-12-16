@@ -8,6 +8,8 @@
 #include <cryptoTools/Crypto/AES.h>
 
 // expand s \in {0, 1}^127 to 256 bits
-void prg(osuCrypto::block s, osuCrypto::block *rand);
+void PRG(osuCrypto::block s, osuCrypto::block *rand);
+
+void HalfPRG(osuCrypto::block s, osuCrypto::block& rand, uint8_t b);
 
 #endif

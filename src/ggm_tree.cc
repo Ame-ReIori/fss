@@ -13,17 +13,18 @@ void ExpandNode(GGMNode *node,
   GGMNode *lnode = (GGMNode *)malloc(sizeof(GGMNode));
   GGMNode *rnode = (GGMNode *)malloc(sizeof(GGMNode));
 
+  osuCrypto::block mask = osuCrypto::toBlock(0xffffffffffffffff, 0xfffffffffffffffe);
   osuCrypto::block word = node->word;
-  osuCrypto::block seed = word >> 1;
+  osuCrypto::block seed = word & mask;
   uint8_t t = *((uint8_t *)&word) & 1;
   osuCrypto::block s[2];
   osuCrypto::block lcw, rcw;
 
-  prg(seed, s);
+  PRG(seed, s);
   
   uint8_t idx = layer;
-  lcw = (key.scw[idx] << 1) | osuCrypto::block(key.tcw_l[idx]);
-  rcw = (key.scw[idx] << 1) | osuCrypto::block(key.tcw_r[idx]);
+  lcw = key.scw[idx] | osuCrypto::block(key.tcw_l[idx]);
+  rcw = key.scw[idx] | osuCrypto::block(key.tcw_r[idx]);
 
   if (t) {
     lnode->word = s[0] ^ lcw;
@@ -42,7 +43,7 @@ void ExpandNode(GGMNode *node,
 
 void GGMTree::FromDPFKey(DPFKey key, uint8_t b) {
   this->root = (GGMNode *)malloc(sizeof(GGMNode));
-  this->root->word = (key.s << 1) | osuCrypto::block(b);
+  this->root->word = key.s | osuCrypto::block(b);
   ExpandNode(this->root, key, 0, this->depth);
 }
 
@@ -86,7 +87,8 @@ void ReconstrcutTwoGGMTree(GGMTree t0, GGMTree t1) {
   }
 }
 
-void test_ggm() {
+void TestGGM() {
+  std::cout << "--------------- GGM TEST ---------------" << std::endl;
   uint64_t alpha = 5;
   uint64_t beta = 1;
 
@@ -103,11 +105,13 @@ void test_ggm() {
   tree0.FromDPFKey(key[0], 0);
   tree1.FromDPFKey(key[1], 1);
 
+  std::cout << std::endl << std::endl;
+
   BFS(tree0);
-  std::cout << std::endl;
+  std::cout << std::endl << std::endl;
 
   BFS(tree1);
-  std::cout << std::endl;
+  std::cout << std::endl << std::endl;
 
   ReconstrcutTwoGGMTree(tree0, tree1);
 }
