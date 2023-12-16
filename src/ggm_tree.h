@@ -33,6 +33,6 @@ public:
 
 void ReconstrcutTwoGGMTree(GGMTree t0, GGMTree t1);
 
-void test_ggm();
+void TestGGM();
 
 #endif
